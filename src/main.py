@@ -1,9 +1,12 @@
 from typing import List
 import os
 import databases
+import sqlalchemy
+from dotenv import find_dotenv, load_dotenv
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 
+load_dotenv(find_dotenv())
 
 app = FastAPI()
 database = databases.Database(os.environ.get("DATABASE_URL"))
@@ -18,10 +21,28 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+metadata = sqlalchemy.MetaData()
+
+network_mods = sqlalchemy.Table(
+    "bikenetwork_mods",
+    metadata,
+    sqlalchemy.Column("link_id", sqlalchemy.Integer),
+    sqlalchemy.Column("design", sqlalchemy.Integer),
+)
+
 
 @app.on_event("startup")
 async def startup():
     await database.connect()
+
+    await database.execute(
+        query="""
+        create table if not exists bikenetwork_mods (
+            link_id int,
+            design int
+        );
+    """
+    )
 
 
 @app.on_event("shutdown")
@@ -33,6 +54,17 @@ async def shutdown():
 def homepage():
     """"""
     return {"message": "hello world"}
+
+
+@app.post("/network-update/")
+async def update_network(q: List[int] = Query(None), design: int = Query(None)):
+    """
+    Insert row(s) for each link_id into the bikenetwork_mods table
+    """
+    await database.execute_many(
+        query=network_mods.insert(),
+        values=[{"link_id": link_id, "design": design} for link_id in q],
+    )
 
 
 @app.get("/island-merge/")

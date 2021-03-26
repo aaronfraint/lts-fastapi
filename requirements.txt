@@ -5,3 +5,5 @@ uvloop
 httptools
 databases
 asyncpg
+python-dotenv
+sqlalchemy
