@@ -7,3 +7,4 @@ databases
 asyncpg
 python-dotenv
 sqlalchemy
+geopandas

@@ -1,3 +1,4 @@
+import json
 from typing import List
 import os
 import databases
@@ -5,11 +6,14 @@ import sqlalchemy
 from dotenv import find_dotenv, load_dotenv
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.encoders import jsonable_encoder
+import geopandas as gpd
 
 load_dotenv(find_dotenv())
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
 app = FastAPI()
-database = databases.Database(os.environ.get("DATABASE_URL"))
+database = databases.Database(DATABASE_URL)
 
 origins = ["*"]
 
@@ -44,6 +48,15 @@ async def startup():
     """
     )
 
+    await database.execute(
+        query="""
+        create or replace view mods_with_geom as (
+            select mods.*, st_transform(nl.geom, 4326) as geom from bikenetwork_mods mods 
+            left join network_links nl on mods.link_id = nl.gid
+        )
+        """
+    )
+
 
 @app.on_event("shutdown")
 async def shutdown():
@@ -54,6 +67,19 @@ async def shutdown():
 def homepage():
     """"""
     return {"message": "hello world"}
+
+
+@app.get("/modified-links/")
+async def get_links_with_mods():
+    engine = sqlalchemy.create_engine(DATABASE_URL)
+
+    sql = "SELECT * FROM mods_with_geom"
+
+    gdf = gpd.read_postgis(sql, engine)
+
+    engine.dispose()
+
+    return json.loads(gdf.to_json())
 
 
 @app.post("/network-update/")
