@@ -71,6 +71,9 @@ def homepage():
 
 @app.get("/modified-links/")
 async def get_links_with_mods():
+    """
+    Return all network modifications as a geojson
+    """
     engine = sqlalchemy.create_engine(DATABASE_URL)
 
     sql = "SELECT * FROM mods_with_geom"
