@@ -76,7 +76,7 @@ async def get_links_with_mods():
     """
     engine = sqlalchemy.create_engine(DATABASE_URL)
 
-    sql = "SELECT * FROM mods_with_geom"
+    sql = "SELECT * FROM mods_with_geom WHERE design > 0"
 
     gdf = gpd.read_postgis(sql, engine)
 
