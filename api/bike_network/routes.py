@@ -1,8 +1,8 @@
 from typing import List
 from fastapi import APIRouter, Query
 
-from ..dependencies import db
-from ..helpers import sql_string_to_geojson
+from api.dependencies import db
+from api.helpers import sql_string_to_geojson
 from .models import network_mods
 
 

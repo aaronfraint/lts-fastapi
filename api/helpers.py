@@ -2,7 +2,7 @@ import json
 import sqlalchemy
 import geopandas as gpd
 
-from ..dependencies import DATABASE_URL
+from .dependencies import DATABASE_URL
 
 
 def sql_string_to_geojson(query: str, uri: str = DATABASE_URL) -> dict:
