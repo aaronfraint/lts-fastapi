@@ -6,6 +6,5 @@ httptools
 databases
 asyncpg
 python-dotenv
-sqlalchemy
 geopandas
 psycopg2-binary

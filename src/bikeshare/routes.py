@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 import shapely
-from api.dependencies import db, DATABASE_URL
+from src.dependencies import DATABASE_URL
 import geopandas
 import json
 
