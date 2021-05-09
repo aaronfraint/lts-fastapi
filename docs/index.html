@@ -224,8 +224,8 @@
                 map.setFilter("indego-selected", id_filter);
 
                 // hit the API for station points
-                // let url = "https://lts-fastapi-c8pjh.ondigitalocean.app/bikeshare/indego-station/?q=" + props.id.toString();
-                let url = "http://localhost:8000/bikeshare/indego-station/?q=" + props.station_id.toString();
+                let url = "https://lts-fastapi-c8pjh.ondigitalocean.app/bikeshare/indego-station/?q=" + props.station_id.toString();
+                // let url = "http://localhost:8000/bikeshare/indego-station/?q=" + props.station_id.toString();
                 fetch(url).then(function (response) {
                     response.text().then(function (text) {
                         let data = JSON.parse(text);
@@ -255,7 +255,8 @@
                 });
 
                 // hit the API for spider lines and update mapbox data source afterwards
-                let spider_url = "http://localhost:8000/bikeshare/indego-station-spider/?q=" + props.station_id.toString();
+                let spider_url = "https://lts-fastapi-c8pjh.ondigitalocean.app/bikeshare/indego-station-spider/?q=" + props.station_id.toString();
+                // let spider_url = "http://localhost:8000/bikeshare/indego-station-spider/?q=" + props.station_id.toString();
                 fetch(spider_url).then(function (response) {
                     response.text().then(function (text) {
                         let data = JSON.parse(text);
