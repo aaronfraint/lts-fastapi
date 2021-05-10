@@ -31,5 +31,5 @@ DATABASE_URL = postgresql://username:password@host:port/database
 Run the API locally:
 
 ```
-uvicorn api.main:app --reload
+uvicorn src.main:app --reload
 ```
