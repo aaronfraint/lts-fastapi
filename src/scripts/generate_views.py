@@ -1,6 +1,6 @@
 import os
 import asyncio
-import databases
+import asyncpg
 from dotenv import find_dotenv, load_dotenv
 
 load_dotenv(find_dotenv())
@@ -63,29 +63,35 @@ query_template = """
 
 async def main():
 
-    db = databases.Database(BIKESHARE_DATABASE_URL)
+    # db = databases.Database(BIKESHARE_DATABASE_URL)
 
-    await db.connect()
+    # await db.connect()
+    conn = await asyncpg.connect(BIKESHARE_DATABASE_URL)
 
     for view_q in materialized_views:
-        await db.execute(view_q)
+        await conn.execute(view_q)
 
-    # ids = await db.fetch_all("SELECT DISTINCT id FROM station_shapes ORDER BY id asc")
+    ids = await conn.fetch("SELECT DISTINCT id FROM station_shapes ORDER BY id asc")
 
-    # for id in ids:
-    #     station_id = id["id"]
+    for id in ids:
+        station_id = id["id"]
+        print("Starting", station_id)
 
-    #     query = f"""
-    #         CREATE TABLE station_{station_id} AS
-    #     """ + query_template.replace(
-    #         "STATION_ID", str(station_id)
-    #     )
+        await conn.execute(query=f"DROP TABLE IF EXISTS station_{station_id};")
 
-    #     # print(query)
+        query = f"""
+            CREATE TABLE station_{station_id} AS
+        """ + query_template.replace(
+            "STATION_ID", str(station_id)
+        )
 
-    #     await db.execute(query=query)
+        # print(query)
 
-    # print("Completed", station_id)
+        await conn.execute(query=query)
+
+        print("... completed", station_id)
+
+    await conn.close()
 
 
 if __name__ == "__main__":
