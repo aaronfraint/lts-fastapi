@@ -2,6 +2,7 @@ import os
 import json
 import asyncpg
 import shapely
+import pandas
 import geopandas
 from dotenv import find_dotenv, load_dotenv
 
@@ -52,3 +53,31 @@ async def postgis_query_to_geojson(query: str, columns: list, uri: str = BIKESHA
 
     gdf = geopandas.GeoDataFrame.from_records(result, columns=columns)
     return json.loads(gdf.to_json())
+
+
+async def sql_query_to_json(query: str, columns: list, uri: str = BIKESHARE_DATABASE_URL):
+    """
+    Connect to postgres via `asyncpg` and return spatial query output
+    as a geojson file
+    """
+    conn = await asyncpg.connect(uri)
+
+    try:
+        result = await conn.fetch(query)
+
+    finally:
+        await conn.close()
+
+    df = pandas.DataFrame.from_records(result, columns=columns)
+
+    output = {}
+
+    for val in df["trip_dir"].unique():
+        output[val] = {}
+
+        filtered = df[df["trip_dir"] == val]
+
+        output[val]["labels"] = list(str(x).replace(".", " Q") for x in filtered["yq"])
+        output[val]["data_values"] = list(filtered["total_trips"])
+
+    return output
