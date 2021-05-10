@@ -1,5 +1,5 @@
-const urlRoot = "http://localhost:8000/";
-// const urlRoot = "https://lts-fastapi-c8pjh.ondigitalocean.app/";
+// const urlRoot = "http://localhost:8000/";
+const urlRoot = "https://lts-fastapi-c8pjh.ondigitalocean.app/";
 
 const colors = {
   blue: "0, 128, 255",
