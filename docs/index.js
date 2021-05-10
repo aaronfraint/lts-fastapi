@@ -41,10 +41,16 @@ const config = {
 };
 var myChart = new Chart(chart_ctx, config);
 
-function update_graph_with_api_data(url) {
-  fetch(url).then(function (response) {
-    response.text().then(function (text) {
-      let timeSeriesData = JSON.parse(text);
+const update_graph_with_api_data = (url) => {
+  // make a GET request to parse the GeoJSON at the url
+  // alert("Inside the reload block");
+  var request = new XMLHttpRequest();
+  request.open("GET", url, true);
+  request.setRequestHeader("Access-Control-Allow-Origin", "*");
+  request.onload = function () {
+    if (this.status >= 200 && this.status < 400) {
+      // retrieve the JSON from the response
+      var timeSeriesData = JSON.parse(this.response);
 
       myChart.data.labels = [];
       myChart.data.datasets[0].data = [];
@@ -64,9 +70,37 @@ function update_graph_with_api_data(url) {
       });
 
       myChart.update();
-    });
-  });
-}
+    }
+  };
+  request.send();
+};
+
+// function update_graph_with_api_data(url) {
+//   fetch(url).then(function (response) {
+//     response.text().then(function (text) {
+//       let timeSeriesData = JSON.parse(text);
+
+//       myChart.data.labels = [];
+//       myChart.data.datasets[0].data = [];
+//       myChart.data.datasets[1].data = [];
+
+//       timeSeriesData.Inbound.labels.forEach((label) => {
+//         myChart.data.labels.push(label);
+//       });
+
+//       console.log(myChart.data.labels);
+
+//       timeSeriesData.Inbound.data_values.forEach((val) => {
+//         myChart.data.datasets[0].data.push(val);
+//       });
+//       timeSeriesData.Outbound.data_values.forEach((val) => {
+//         myChart.data.datasets[1].data.push(val);
+//       });
+
+//       myChart.update();
+//     });
+//   });
+// }
 
 // function get_data_from_api(url) {
 //   fetch(url)
@@ -267,17 +301,21 @@ map.on("load", function () {
     // hit the API for station points
     let point_url =
       urlRoot + "indego/trip-points/?q=" + props.station_id.toString();
-    fetch(point_url).then(function (response) {
-      response.text().then(function (text) {
-        let data = JSON.parse(text);
 
-        // update mapbox layer data with API result
-        map.getSource("indego-query").setData(data);
+    // get the point data from the API
+    var point_request = new XMLHttpRequest();
+    point_request.open("GET", point_url, true);
+    point_request.setRequestHeader("Access-Control-Allow-Origin", "*");
+    point_request.onload = function () {
+      if (this.status >= 200 && this.status < 400) {
+        // retrieve the JSON from the response
+        var json = JSON.parse(this.response);
+        map.getSource("indego-query").setData(json);
 
         // Get a bounding box of high-volume stations
         var bounds = new mapboxgl.LngLatBounds();
 
-        data.features.forEach(function (feature) {
+        json.features.forEach(function (feature) {
           // TODO: tie this to the selected direction instead of origins
           if (feature.properties.origins >= 2) {
             bounds.extend(feature.geometry.coordinates);
@@ -289,19 +327,33 @@ map.on("load", function () {
 
         // force the full station layer back to small dots (user may not have mouseexited yet)
         map.setPaintProperty("indego-all", "circle-radius", 2);
-      });
-    });
+      }
+    };
+    point_request.send();
 
     // hit the API for spider lines and update mapbox data source afterwards
     let spider_url =
       urlRoot + "indego/trip-spider/?q=" + props.station_id.toString();
-    fetch(spider_url).then(function (response) {
-      response.text().then(function (text) {
-        let data = JSON.parse(text);
 
-        map.getSource("indego-query-spider").setData(data);
-      });
-    });
+    var spider_request = new XMLHttpRequest();
+    spider_request.open("GET", spider_url, true);
+    spider_request.setRequestHeader("Access-Control-Allow-Origin", "*");
+    spider_request.onload = function () {
+      if (this.status >= 200 && this.status < 400) {
+        // retrieve the JSON from the response
+        var json = JSON.parse(this.response);
+        map.getSource("indego-query-spider").setData(json);
+      }
+    };
+    spider_request.send();
+
+    // fetch(spider_url).then(function (response) {
+    //   response.text().then(function (text) {
+    //     let data = JSON.parse(text);
+
+    //     map.getSource("indego-query-spider").setData(data);
+    //   });
+    // });
 
     let time_url =
       urlRoot + "indego/timeseries/?q=" + props.station_id.toString();
