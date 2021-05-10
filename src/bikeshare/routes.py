@@ -7,7 +7,7 @@ from fastapi import APIRouter
 # import asyncpg
 
 
-from .db import postgis_query_to_geojson
+from .db import postgis_query_to_geojson, sql_query_to_json
 
 bikeshare_router = APIRouter(
     prefix="/indego",
@@ -49,7 +49,8 @@ async def get_trips_for_single_indego_station_as_geojson(
         station_id,
         origins::float / 75 as origins,
         destinations::float / 75 as destinations,
-        (origins::float + destinations::float) / 75 as totalTrips,
+        CASE WHEN station_id = {int(q)} THEN origins::float / 75
+            ELSE (origins::float + destinations::float) / 75 END as totalTrips,
         geom as geometry from station_{int(q)};
     """
     return await postgis_query_to_geojson(
@@ -86,3 +87,26 @@ async def get_spider_diagram_for_single_indego_station_as_geojson(
     return await postgis_query_to_geojson(
         query, ["station_id", "origins", "destinations", "totalTrips", "geometry"]
     )
+
+
+@bikeshare_router.get("/timeseries/")
+async def get_timeseries_data_for_single_station(q: int) -> dict:
+    pass
+
+    query = f"""
+        with raw as (
+            select 
+                case when start_station = {int(q)} and end_station = {int(q)} then 'Round Trip'
+                when start_station = {int(q)} and end_station != {int(q)} then 'Outbound'
+                when start_station != {int(q)} and end_station = {int(q)} then 'Inbound' end as trip_dir,
+                *
+            from trips_by_quarter
+            where start_station = {int(q)} or end_station = {int(q)}
+        )
+        select trip_dir, y + q as yq, sum(trips) as total_trips
+        from raw
+        group by trip_dir, y, q
+        order by trip_dir, y, q
+    """
+
+    return await sql_query_to_json(query, ["trip_dir", "yq", "total_trips"])
