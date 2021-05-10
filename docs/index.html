@@ -12,6 +12,7 @@
       rel="stylesheet"
     />
     <script src="https://api.mapbox.com/mapbox-gl-js/v2.2.0/mapbox-gl.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
       body {
@@ -40,6 +41,17 @@
         box-shadow: 8px 8px 2px 1px rgba(0, 0, 0, 0.3);
       }
 
+      #graph {
+        position: absolute;
+        width: 20vw;
+        height: 90vh;
+        bottom: 5%;
+        right: 2%;
+        z-index: 1;
+        background-color: rgba(255, 255, 255, 0.9);
+        box-shadow: 2px 2px 8px 8px rgba(0, 0, 0, 0.3);
+      }
+
       #station-address {
         text-transform: capitalize;
         font-style: italic;
@@ -50,6 +62,8 @@
         color: white;
       }
     </style>
+
+    <script defer type="module" src="./index.js"></script>
   </head>
 
   <body>
@@ -60,223 +74,22 @@
         <hr />
 
         <p>
-          Showing trips that
+          Showing
 
           <select name="directionality" id="directionality">
-            <option value="origins">START</option>
-            <option value="destinations">END</option>
-            <option value="totalTrips">START or END</option>
+            <option value="destinations">inbound</option>
+            <option value="origins">outbound</option>
+            <option value="totalTrips">all</option>
           </select>
-          at:
+          trips
         </p>
 
         <h3 id="station-name">Municipal Services Building Plaza</h3>
         <p id="station-address">1401 John F. Kennedy Blvd.</p>
       </div>
+      <div id="graph">
+        <canvas id="myChart"></canvas>
+      </div>
     </div>
-    <script>
-      mapboxgl.accessToken =
-        "pk.eyJ1IjoiYWFyb25kdnJwYyIsImEiOiJja2NvN2s5dnAwaWR2MnptbzFwYmd2czVvIn0.Fcc34gzGME_zHR5q4RnSOg";
-      var map = new mapboxgl.Map({
-        container: "map", // container ID
-        style: "mapbox://styles/mapbox/streets-v10", // style URL
-        center: [-75.16362, 39.95238],
-        zoom: 12, // starting zoom
-      });
-
-      map.on("load", function () {
-        // Add a data source containing GeoJSON data.
-
-        // const urlRoot = "http://localhost:8000/";
-        const urlRoot = "https://lts-fastapi-c8pjh.ondigitalocean.app/";
-
-        // TODO: show bike lanes with vector source
-        map.addSource("LTS", {
-          type: "vector",
-          data: " https://www.tiles.dvrpc.org/data/lts.json",
-        });
-
-        map.addSource("indego", {
-          type: "geojson",
-          data: urlRoot + "indego/all",
-        });
-        map.addSource("indego-query", {
-          type: "geojson",
-          data: urlRoot + "indego/trip-points/?q=3004",
-        });
-        map.addSource("indego-query-spider", {
-          type: "geojson",
-          data: urlRoot + "indego/trip-spider/?q=3004",
-        });
-
-        // This layer has every station point and text attribute data
-        map.addLayer({
-          id: "indego-all",
-          type: "circle",
-          source: "indego", // reference the data source
-          layout: {},
-          paint: {
-            "circle-opacity": 0.2,
-            "circle-stroke-width": 1,
-            "circle-stroke-color": "#000000",
-            "circle-stroke-opacity": 0.5,
-            "circle-radius": 2,
-          },
-        });
-
-        // This layers shows the spider lines based upon the API output for a selected station
-        map.addLayer({
-          id: "indego-spider",
-          type: "line",
-          source: "indego-query-spider", // reference the data source
-          layout: {},
-          paint: {
-            "line-width": ["get", "origins"],
-            "line-opacity": 0.3,
-            "line-color": "#0080ff",
-          },
-        });
-        // map.addLayer({
-        //     'id': 'spider-hover',
-        //     'type': 'line',
-        //     'source': 'indego-query-spider', // reference the data source
-        //     'layout': {},
-        //     'paint': {
-        //         "line-width": ['get', 'origins'],
-        //         "line-opacity": 0.3,
-        //         "line-color": "#fff123",
-        //     },
-        //     'filter': ["in", "station_id", 99999999]
-        // });
-
-        // This layers shows the scaled dots based upon the API output for a selected station
-        map.addLayer({
-          id: "indego-query",
-          type: "circle",
-          source: "indego-query", // reference the data source
-          paint: {
-            "circle-color": "#0080ff", // blue color fill
-            "circle-opacity": 0.3,
-            "circle-stroke-width": 2,
-            "circle-stroke-color": "#0080ff",
-            "circle-radius": ["get", "origins"],
-          },
-        });
-        // map.addLayer({
-        //     'id': 'indego-query-labels',
-        //     'type': 'symbol',
-        //     'source': 'indego-query', // reference the data source
-        //     'layout': {
-        //         'text-field': ["format", ['get', 'origins'], { 'round': 0 }],
-        //         'text-variable-anchor': ['top'],
-        //         'text-radial-offset': 0,
-        //         'text-justify': 'auto',
-        //     },
-        //     'filter': [">", "origins", 5]
-        // });
-
-        // This layer exists to show the station that the user clicked on in YELLOW
-        map.addLayer({
-          id: "indego-selected",
-          type: "circle",
-          source: "indego-query", // reference the data source
-          paint: {
-            "circle-opacity": 0.5,
-            "circle-color": "#fff123",
-            "circle-stroke-width": 5,
-            "circle-stroke-color": "#fff123",
-            "circle-radius": ["get", "origins"],
-          },
-          filter: ["in", "station_id", 3004],
-        });
-
-        // hovering over the "all" layer makes the dots grow and show that they're clickable
-        map.on("mouseenter", "indego-all", () => {
-          map.getCanvas().style.cursor = "pointer";
-          map.setPaintProperty("indego-all", "circle-radius", 15);
-        });
-
-        // moving mouse away from "all" layer makes them small again
-        map.on("mouseleave", "indego-all", () => {
-          map.getCanvas().style.cursor = "";
-          map.setPaintProperty("indego-all", "circle-radius", 2);
-        });
-
-        map.on("click", "indego-all", function (e) {
-          var props = e.features[0].properties;
-
-          // Update the title in the header block and address
-          const stationTextDiv = document.querySelector("#station-name");
-          const stationAddressTextDiv = document.querySelector(
-            "#station-address"
-          );
-
-          stationTextDiv.innerHTML = props.name;
-          stationAddressTextDiv.innerHTML = props.addressstreet;
-
-          // filter selected layer to this id
-          var id_filter = ["in", "station_id", props.station_id];
-          map.setFilter("indego-selected", id_filter);
-
-          // hit the API for station points
-          let point_url =
-            urlRoot + "indego/trip-points/?q=" + props.station_id.toString();
-          fetch(point_url).then(function (response) {
-            response.text().then(function (text) {
-              let data = JSON.parse(text);
-
-              // update mapbox layer data with API result
-              map.getSource("indego-query").setData(data);
-
-              // Get a bounding box of high-volume stations
-              var bounds = new mapboxgl.LngLatBounds();
-
-              data.features.forEach(function (feature) {
-                // TODO: tie this to the selected direction instead of origins
-                if (feature.properties.origins >= 2) {
-                  bounds.extend(feature.geometry.coordinates);
-                }
-              });
-
-              // zoom map to fit bounding box that was just defined
-              map.fitBounds(bounds);
-
-              // force the full station layer back to small dots (user may not have mouseexited yet)
-              map.setPaintProperty("indego-all", "circle-radius", 2);
-            });
-          });
-
-          // hit the API for spider lines and update mapbox data source afterwards
-          let spider_url =
-            urlRoot + "indego/trip-spider/?q=" + props.station_id.toString();
-          fetch(spider_url).then(function (response) {
-            response.text().then(function (text) {
-              let data = JSON.parse(text);
-
-              map.getSource("indego-query-spider").setData(data);
-            });
-          });
-        });
-      });
-
-      const selectElement = document.querySelector("#directionality");
-
-      selectElement.addEventListener("change", (event) => {
-        map.setPaintProperty("indego-selected", "circle-radius", [
-          "get",
-          event.target.value,
-        ]);
-        map.setPaintProperty("indego-query", "circle-radius", [
-          "get",
-          event.target.value,
-        ]);
-        map.setPaintProperty("indego-spider", "line-width", [
-          "get",
-          event.target.value,
-        ]);
-      });
-
-      // TODO: add chart.js bar graph
-    </script>
   </body>
 </html>
